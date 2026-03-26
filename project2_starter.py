@@ -43,7 +43,7 @@ def load_listing_results(html_path) -> list[tuple]:
     with open(html_path, "r", encoding="utf-8-sig") as f:
         soup = BeautifulSoup(f.read(), "html.parser")
     results = []
-    title_divs = soup.find_all("div", attrs={"id": re.compile(r"^title_")})
+    title_divs = soup.find_all("div", attrs={"id": re.compile(r"^title_")}) #used AI here for formatting in the re.compile function, but I wrote the regex pattern myself to find divs with ids that start with "title_"
     for div in title_divs:
         listing_title = div.get_text(strip=True)
         listing_id = div["id"].replace("title_", "")
@@ -80,7 +80,7 @@ def get_listing_details(listing_id) -> dict:
     # YOUR CODE STARTS HERE
     # ==============================
     base_dir = os.path.abspath(os.path.dirname(__file__))
-    filepath = os.path.join(base_dir, "html_files", f"listing_{listing_id}.html")
+    filepath = os.path.join(base_dir, "html_files", f"listing_{listing_id}.html") #used os.path from AI for formatting 
     with open(filepath, "r", encoding="utf-8-sig") as f:
         soup = BeautifulSoup(f.read(), "html.parser")
     policy_number = ""
@@ -88,15 +88,13 @@ def get_listing_details(listing_id) -> dict:
     for li in policy_li_tags:
         li_text = li.get_text(strip=True)
         if "Policy number:" in li_text:
-            value_span = li.find("span", class_="ll4r2nl")
+            value_span = li.find("span", class_="ll4r2nl") #used AI to help me with the li.find function
             if value_span:
                 raw_policy = value_span.get_text(strip=True)
-                # Clean up any invisible characters
-                raw_policy = raw_policy.replace("\ufeff", "").strip()
-                # Categorize into policy number, Pending, or Exempt
+                raw_policy = raw_policy.replace("\ufeff", "").strip() #used AI for formatting here
                 if raw_policy.lower() == "pending":
                     policy_number = "Pending"
-                elif raw_policy.lower() == "exempt":
+                elif raw_policy.lower() == "exempt": 
                     policy_number = "Exempt"
                 else:
                     policy_number = raw_policy
@@ -104,14 +102,14 @@ def get_listing_details(listing_id) -> dict:
     superhost_text = soup.find(string=re.compile(r"Superhost"))
     host_type = "Superhost" if superhost_text else "regular"
     host_name = ""
-    hosted_by_tag = soup.find("h2", string=re.compile(r"Hosted by"))
+    hosted_by_tag = soup.find("h2", string=re.compile(r"Hosted by")) #used AI with re.compile to find the h2 tag that contains the host name, which starts with "Hosted by"
     if hosted_by_tag:
         hosted_text = hosted_by_tag.get_text(strip=True)
         host_name = hosted_text.replace("Hosted by ", "").strip()
     room_type = "Entire Room"
     subtitle_div = soup.find("div", class_="_cv5qq4")
     if subtitle_div:
-        subtitle_text = subtitle_div.get_text(strip=True)
+        subtitle_text = subtitle_div.get_text(strip=True) #used AI to help me with the get_text function to extract the room type information from the subtitle div, which contains text like "Private Room in San Francisco" or "Shared Room in San Francisco"
         if "Private" in subtitle_text:
             room_type = "Private Room"
         elif "Shared" in subtitle_text:
@@ -162,7 +160,7 @@ def create_listing_database(html_path) -> list[tuple]:
     database = []
  
     for listing_title, listing_id in listings:
-        details_dict = get_listing_details(listing_id)
+        details_dict = get_listing_details(listing_id) #used AI to help me with the function call to get_listing_details and to understand that it returns a nested dictionary, so I can extract the details for the current listing_id
         details = details_dict[listing_id]
         entry = (
             listing_title,
@@ -199,7 +197,7 @@ def output_csv(data, filename) -> None:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    sorted_data = sorted(data, key=lambda x: x[6], reverse=True)
+    sorted_data = sorted(data, key=lambda x: x[6], reverse=True) #used Ai for the lambda function to sort the data by location rating, which is the 7th element in each tuple (index 6), in descending order
     with open(filename, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerow(
@@ -274,7 +272,7 @@ def validate_policy_numbers(data) -> list[str]:
     # ==============================
     invalid_ids = []
     pattern1 = r"^20\d{2}-00\d{4}STR$"
-    pattern2 = r"^STR-000\d{4}$"
+    pattern2 = r"^STR-000\d{4}$" 
     for entry in data:
         listing_id = entry[1]
         policy_number = entry[2]
