@@ -6,9 +6,8 @@
 # If you worked with generative AI also add a statement for how you used it. 
 # e.g.: I used ChatGPT to help me understand the code and how to approach each problem conceptually, and to better run my code first then debug it with ChatGPT
 # Asked ChatGPT for hints on debugging and for suggestions on overall code structure
-#
 # Did your use of GenAI on this assignment align with your goals and guidelines in your Gen AI contract? If not, why?
-#
+# Yes they did, as I used GenAI to help me understand the code and how to approach each problem conceptually, and to better run my code first then debug it with ChatGPT. I did not use GenAI to write any of the code for me, but I did ask for suggestions on overall code structure and debugging help when I was stuck. I believe this aligns with my goals and guidelines in my Gen AI contract, as I used GenAI as a tool to enhance my understanding and problem-solving skills, rather than relying on it to do the work for me.
 # --- ARGUMENTS & EXPECTED RETURN VALUES PROVIDED --- #
 # --- SEE INSTRUCTIONS FOR FULL DETAILS ON METHOD IMPLEMENTATION --- #
 
@@ -41,6 +40,16 @@ def load_listing_results(html_path) -> list[tuple]:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
+    with open(html_path, "r", encoding="utf-8-sig") as f:
+        soup = BeautifulSoup(f.read(), "html.parser")
+    results = []
+    title_divs = soup.find_all("div", attrs={"id": re.compile(r"^title_")})
+    for div in title_divs:
+        listing_title = div.get_text(strip=True)
+        listing_id = div["id"].replace("title_", "")
+        results.append((listing_title, listing_id))
+ 
+    return results
     pass
     # ==============================
     # YOUR CODE ENDS HERE
