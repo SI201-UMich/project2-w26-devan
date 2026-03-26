@@ -79,7 +79,65 @@ def get_listing_details(listing_id) -> dict:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    pass
+    base_dir = os.path.abspath(os.path.dirname(__file__))
+    filepath = os.path.join(base_dir, "html_files", f"listing_{listing_id}.html")
+    with open(filepath, "r", encoding="utf-8-sig") as f:
+        soup = BeautifulSoup(f.read(), "html.parser")
+    policy_number = ""
+    policy_li_tags = soup.find_all("li", class_="f19phm7j")
+    for li in policy_li_tags:
+        li_text = li.get_text(strip=True)
+        if "Policy number:" in li_text:
+            value_span = li.find("span", class_="ll4r2nl")
+            if value_span:
+                raw_policy = value_span.get_text(strip=True)
+                # Clean up any invisible characters
+                raw_policy = raw_policy.replace("\ufeff", "").strip()
+                # Categorize into policy number, Pending, or Exempt
+                if raw_policy.lower() == "pending":
+                    policy_number = "Pending"
+                elif raw_policy.lower() == "exempt":
+                    policy_number = "Exempt"
+                else:
+                    policy_number = raw_policy
+            break
+    superhost_text = soup.find(string=re.compile(r"Superhost"))
+    host_type = "Superhost" if superhost_text else "regular"
+    host_name = ""
+    hosted_by_tag = soup.find("h2", string=re.compile(r"Hosted by"))
+    if hosted_by_tag:
+        hosted_text = hosted_by_tag.get_text(strip=True)
+        host_name = hosted_text.replace("Hosted by ", "").strip()
+    room_type = "Entire Room"
+    subtitle_div = soup.find("div", class_="_cv5qq4")
+    if subtitle_div:
+        subtitle_text = subtitle_div.get_text(strip=True)
+        if "Private" in subtitle_text:
+            room_type = "Private Room"
+        elif "Shared" in subtitle_text:
+            room_type = "Shared Room"
+        else:
+            room_type = "Entire Room"
+    location_rating = 0.0
+    location_elements = soup.find_all(string="Location")
+    for elem in location_elements:
+        parent = elem.parent
+        grandparent = parent.parent
+        texts = [t.strip() for t in grandparent.find_all(string=True) if t.strip()]
+        if len(texts) == 2 and texts[0] == "Location":
+            try:
+                location_rating = float(texts[1])
+            except ValueError:
+                pass
+    return {
+        listing_id: {
+            "policy_number": policy_number,
+            "host_type": host_type,
+            "host_name": host_name,
+            "room_type": room_type,
+            "location_rating": location_rating,
+        }
+    }
     # ==============================
     # YOUR CODE ENDS HERE
     # ==============================
@@ -100,6 +158,24 @@ def create_listing_database(html_path) -> list[tuple]:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
+    listings = load_listing_results(html_path)
+    database = []
+ 
+    for listing_title, listing_id in listings:
+        details_dict = get_listing_details(listing_id)
+        details = details_dict[listing_id]
+        entry = (
+            listing_title,
+            listing_id,
+            details["policy_number"],
+            details["host_type"],
+            details["host_name"],
+            details["room_type"],
+            details["location_rating"],
+        )
+        database.append(entry)
+ 
+    return database
     pass
     # ==============================
     # YOUR CODE ENDS HERE
@@ -123,6 +199,22 @@ def output_csv(data, filename) -> None:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
+    sorted_data = sorted(data, key=lambda x: x[6], reverse=True)
+    with open(filename, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f)
+        writer.writerow(
+            [
+                "Listing Title",
+                "Listing ID",
+                "Policy Number",
+                "Host Type",
+                "Host Name",
+                "Room Type",
+                "Location Rating",
+            ]
+        )
+        for row in sorted_data:
+            writer.writerow(row)
     pass
     # ==============================
     # YOUR CODE ENDS HERE
@@ -146,6 +238,19 @@ def avg_location_rating_by_room_type(data) -> dict:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
+    room_type_ratings = {}
+    for entry in data:
+        room_type = entry[5]
+        location_rating = entry[6]
+        if location_rating == 0.0:
+            continue
+        if room_type not in room_type_ratings:
+            room_type_ratings[room_type] = []
+        room_type_ratings[room_type].append(location_rating)
+    averages = {}
+    for room_type, ratings in room_type_ratings.items():
+        averages[room_type] = round(sum(ratings) / len(ratings), 1)
+    return averages
     pass
     # ==============================
     # YOUR CODE ENDS HERE
@@ -167,6 +272,19 @@ def validate_policy_numbers(data) -> list[str]:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
+    invalid_ids = []
+    pattern1 = r"^20\d{2}-00\d{4}STR$"
+    pattern2 = r"^STR-000\d{4}$"
+    for entry in data:
+        listing_id = entry[1]
+        policy_number = entry[2]
+        if policy_number == "Pending" or policy_number == "Exempt":
+            continue
+        if not re.match(pattern1, policy_number) and not re.match(
+            pattern2, policy_number
+        ):
+            invalid_ids.append(listing_id)
+    return invalid_ids
     pass
     # ==============================
     # YOUR CODE ENDS HERE
@@ -187,6 +305,18 @@ def google_scholar_searcher(query):
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
+    url = "https://scholar.google.com/scholar"
+    params = {"q": query}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    response = requests.get(url, params=params, headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
+    titles = []
+    for h3 in soup.find_all("h3", class_="gs_rt"):
+        title_text = h3.get_text(strip=True)
+        titles.append(title_text)
+    return titles
     pass
     # ==============================
     # YOUR CODE ENDS HERE
